@@ -33,195 +33,128 @@ interface EventFormProps {
   error?: string | null
 }
 
-export default function EventForm({
-  defaultValues,
-  defaultLat,
-  defaultLng,
-  onSubmit,
-  isSubmitting,
-  submitLabel,
-  showStatus = false,
-  error,
-}: EventFormProps) {
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'var(--z-surface2)', border: '1px solid var(--z-border)',
+  borderRadius: 10, padding: '11px 14px', fontSize: 14, color: 'var(--z-text)',
+  outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.15s',
+}
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 12, fontWeight: 600, letterSpacing: '0.4px',
+  textTransform: 'uppercase', color: 'var(--z-muted)', marginBottom: 6,
+}
+const errStyle: React.CSSProperties = { fontSize: 12, color: 'var(--z-coral)', marginTop: 4 }
+
+export default function EventForm({ defaultValues, defaultLat, defaultLng, onSubmit, isSubmitting, submitLabel, showStatus = false, error }: EventFormProps) {
   const [lat, setLat] = useState<number | null>(defaultLat ?? null)
   const [lng, setLng] = useState<number | null>(defaultLng ?? null)
+  const { data: interests } = useQuery({ queryKey: ['interests'], queryFn: getAllInterests })
 
-  const { data: interests } = useQuery({
-    queryKey: ['interests'],
-    queryFn: getAllInterests,
-  })
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<EventFormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues,
   })
 
   const handleFormSubmit = (formData: EventFormValues) => {
-    const payload: CreateEventDto = {
-      title: formData.title,
-      category: formData.category,
+    onSubmit({
+      title: formData.title, category: formData.category,
       description: formData.description || undefined,
-      starts_at: formData.starts_at,
-      duration_minutes: formData.duration_minutes,
+      starts_at: formData.starts_at, duration_minutes: formData.duration_minutes,
       max_participants: formData.max_participants,
-      address: formData.address || undefined,
-      city: formData.city || undefined,
+      address: formData.address || undefined, city: formData.city || undefined,
       cover_image_url: formData.cover_image_url || undefined,
-      lat: lat ?? undefined,
-      lng: lng ?? undefined,
-    }
-    onSubmit(payload)
+      lat: lat ?? undefined, lng: lng ?? undefined,
+    })
+  }
+
+  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.target.style.borderColor = 'rgba(162,155,254,0.5)'
+    e.target.style.boxShadow = '0 0 0 3px rgba(108,92,231,0.1)'
+  }
+  const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.target.style.borderColor = 'var(--z-border)'
+    e.target.style.boxShadow = 'none'
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(handleFormSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Title</label>
-        <input
-          {...register('title')}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-          placeholder="Event title"
-        />
-        {errors.title && (
-          <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
-        )}
+        <label style={labelStyle}>Event Title</label>
+        <input {...register('title')} style={inputStyle} placeholder="What's happening?" onFocus={onFocus} onBlur={onBlur} />
+        {errors.title && <p style={errStyle}>{errors.title.message}</p>}
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
-        <select
-          {...register('category')}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-        >
+        <label style={labelStyle}>Category</label>
+        <select {...register('category')} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
           <option value="">Select a category</option>
-          {(interests ?? []).map((i) => (
-            <option key={i.id} value={i.name}>
-              {i.name}
-            </option>
-          ))}
+          {(interests ?? []).map((i) => <option key={i.id} value={i.name}>{i.name}</option>)}
         </select>
-        {errors.category && (
-          <p className="mt-1 text-sm text-red-500">{errors.category.message}</p>
-        )}
+        {errors.category && <p style={errStyle}>{errors.category.message}</p>}
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
-        <textarea
-          {...register('description')}
-          rows={4}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-          placeholder="Describe your event..."
-        />
+        <label style={labelStyle}>Description</label>
+        <textarea {...register('description')} rows={3} style={{ ...inputStyle, resize: 'none', lineHeight: 1.55 } as React.CSSProperties} placeholder="Describe your event…" onFocus={onFocus} onBlur={onBlur} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Starts At</label>
-          <input
-            type="datetime-local"
-            {...register('starts_at')}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-          />
-          {errors.starts_at && (
-            <p className="mt-1 text-sm text-red-500">{errors.starts_at.message}</p>
-          )}
+          <label style={labelStyle}>Starts At</label>
+          <input type="datetime-local" {...register('starts_at')} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          {errors.starts_at && <p style={errStyle}>{errors.starts_at.message}</p>}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Duration (minutes)
-          </label>
-          <input
-            type="number"
-            {...register('duration_minutes')}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-            placeholder="60"
-          />
-          {errors.duration_minutes && (
-            <p className="mt-1 text-sm text-red-500">{errors.duration_minutes.message}</p>
-          )}
+          <label style={labelStyle}>Duration (min)</label>
+          <input type="number" {...register('duration_minutes')} style={inputStyle} placeholder="60" onFocus={onFocus} onBlur={onBlur} />
+          {errors.duration_minutes && <p style={errStyle}>{errors.duration_minutes.message}</p>}
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Max Participants</label>
-        <input
-          type="number"
-          {...register('max_participants')}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-          placeholder="20"
-        />
-        {errors.max_participants && (
-          <p className="mt-1 text-sm text-red-500">{errors.max_participants.message}</p>
-        )}
+        <label style={labelStyle}>Max Participants</label>
+        <input type="number" {...register('max_participants')} style={inputStyle} placeholder="20" onFocus={onFocus} onBlur={onBlur} />
+        {errors.max_participants && <p style={errStyle}>{errors.max_participants.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Address</label>
-          <input
-            {...register('address')}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-            placeholder="123 Main St"
-          />
+          <label style={labelStyle}>Address</label>
+          <input {...register('address')} style={inputStyle} placeholder="123 Main St" onFocus={onFocus} onBlur={onBlur} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">City</label>
-          <input
-            {...register('city')}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-            placeholder="New York"
-          />
+          <label style={labelStyle}>City</label>
+          <input {...register('city')} style={inputStyle} placeholder="Casablanca" onFocus={onFocus} onBlur={onBlur} />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Cover Image URL</label>
-        <input
-          {...register('cover_image_url')}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-          placeholder="https://..."
-        />
-        {errors.cover_image_url && (
-          <p className="mt-1 text-sm text-red-500">{errors.cover_image_url.message}</p>
-        )}
+        <label style={labelStyle}>Cover Image URL</label>
+        <input {...register('cover_image_url')} style={inputStyle} placeholder="https://…" onFocus={onFocus} onBlur={onBlur} />
+        {errors.cover_image_url && <p style={errStyle}>{errors.cover_image_url.message}</p>}
       </div>
 
       {showStatus && (
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
-          <select
-            {...register('status')}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-          >
+          <label style={labelStyle}>Status</label>
+          <select {...register('status')} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
             <option value="">Keep current</option>
-            <option value="cancelled">Cancelled</option>
             <option value="open">Open</option>
+            <option value="cancelled">Cancelled</option>
             <option value="completed">Completed</option>
           </select>
         </div>
       )}
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Location <span className="text-gray-400">(click map to set pin)</span>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>
+          Location <span style={{ color: 'var(--z-muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(click map to pin)</span>
         </label>
-        <EventMap
-          lat={lat}
-          lng={lng}
-          onPositionChange={(newLat, newLng) => {
-            setLat(newLat)
-            setLng(newLng)
-          }}
-        />
+        <EventMap lat={lat} lng={lng} onPositionChange={(nlat, nlng) => { setLat(nlat); setLng(nlng) }} />
+        {lat && lng && <p style={{ fontSize: 11, color: 'var(--z-mint)', marginTop: 6 }}>📍 {lat.toFixed(4)}, {lng.toFixed(4)}</p>}
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+        <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--z-coral)' }}>
           {error}
         </div>
       )}
@@ -229,9 +162,9 @@ export default function EventForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, background: isSubmitting ? 'rgba(108,92,231,0.5)' : 'var(--z-accent)', border: 'none', color: 'white', fontSize: 15, fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', fontFamily: '"Sora",sans-serif', transition: 'background 0.15s' }}
       >
-        {isSubmitting ? 'Saving...' : submitLabel}
+        {isSubmitting ? 'Saving…' : submitLabel}
       </button>
     </form>
   )

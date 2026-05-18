@@ -5,10 +5,30 @@ import { formatDate, formatTime, statusColor } from '@/lib/utils'
 
 interface EventCardProps {
   event: Event
+  compact?: boolean
 }
 
-export default function EventCard({ event }: EventCardProps) {
+const CATEGORY_EMOJI: Record<string, string> = {
+  Music: '🎵', Sports: '🏃', Food: '🍕', Arts: '🎭',
+  Tech: '💻', Books: '📚', Nature: '🌿', Wellness: '🧘',
+  Games: '🎮', Travel: '✈️', Photo: '📸', Dance: '💃',
+}
+
+const CATEGORY_COLOR: Record<string, string> = {
+  Music: 'rgba(108,92,231,0.15)',
+  Sports: 'rgba(0,206,201,0.12)',
+  Food: 'rgba(253,121,168,0.12)',
+  Arts: 'rgba(255,107,107,0.12)',
+  Tech: 'rgba(108,92,231,0.1)',
+  Books: 'rgba(255,234,167,0.1)',
+  Nature: 'rgba(0,206,201,0.1)',
+  Wellness: 'rgba(0,206,201,0.1)',
+}
+
+export default function EventCard({ event, compact = false }: EventCardProps) {
   const navigate = useNavigate()
+  const emoji = CATEGORY_EMOJI[event.category] ?? '✦'
+  const bgColor = CATEGORY_COLOR[event.category] ?? 'rgba(108,92,231,0.1)'
 
   return (
     <div
@@ -18,57 +38,81 @@ export default function EventCard({ event }: EventCardProps) {
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') navigate(`/events/${event.id}`)
       }}
-      className="cursor-pointer rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="z-card cursor-pointer overflow-hidden"
+      style={{ borderRadius: 'var(--z-radius)' }}
     >
-      <div className="relative h-40 overflow-hidden rounded-t-xl bg-gray-100">
+      {/* Cover / Emoji Placeholder */}
+      <div
+        className="relative overflow-hidden"
+        style={{ height: compact ? 80 : 120, background: bgColor }}
+      >
         {event.cover_image_url ? (
           <img
             src={event.cover_image_url}
             alt={event.title}
-            className="h-full w-full object-cover"
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            <Calendar className="h-10 w-10" />
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ fontSize: compact ? 28 : 36 }}
+          >
+            {emoji}
           </div>
         )}
         <span
-          className={`absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}
+          className={`absolute right-2 top-2 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor(event.status)}`}
+          style={{ letterSpacing: '0.3px' }}
         >
           {event.status}
         </span>
       </div>
 
-      <div className="space-y-2 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-gray-900 line-clamp-1">{event.title}</h3>
-          <span className="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary">
-            {event.category}
-          </span>
+      {/* Body */}
+      <div className="p-3">
+        <div
+          className="text-xs font-semibold mb-1"
+          style={{ color: 'var(--z-accent2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}
+        >
+          {event.category}
         </div>
-
-        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-          <Calendar className="h-4 w-4" />
-          <span>
-            {formatDate(event.starts_at)} at {formatTime(event.starts_at)}
-          </span>
-        </div>
-
-        {event.city && (
-          <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <MapPin className="h-4 w-4" />
-            <span>{event.city}</span>
+        <h3
+          className="font-display font-semibold line-clamp-1 mb-1.5"
+          style={{ fontSize: 13, color: 'var(--z-text)', lineHeight: 1.3 }}
+        >
+          {event.title}
+        </h3>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1" style={{ fontSize: 11, color: 'var(--z-muted)' }}>
+            <Calendar size={12} />
+            <span>{formatDate(event.starts_at)} · {formatTime(event.starts_at)}</span>
           </div>
-        )}
-
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <Users className="h-4 w-4" />
-            <span>
-              {event.current_count}/{event.max_participants}
-            </span>
-          </div>
+          {event.city && (
+            <div className="flex items-center gap-1" style={{ fontSize: 11, color: 'var(--z-muted)' }}>
+              <MapPin size={12} />
+              <span>{event.city}</span>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-3 pb-3 pt-1"
+        style={{ borderTop: '1px solid var(--z-border)' }}
+      >
+        <div className="flex items-center gap-1" style={{ fontSize: 11, color: 'var(--z-muted)' }}>
+          <Users size={12} />
+          <span>{event.current_count}/{event.max_participants}</span>
+        </div>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="z-btn-outline"
+          style={{ padding: '4px 12px', fontSize: 11 }}
+          disabled={event.status === 'full' || event.status === 'completed' || event.status === 'cancelled'}
+        >
+          {event.status === 'full' ? 'Full' : 'Join'}
+        </button>
       </div>
     </div>
   )
