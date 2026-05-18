@@ -86,3 +86,5 @@ export function manageParticipant(
 ): Promise<void> {
   return api.patch(`/events/${eventId}/participants/${userId}`, { action })
 }
+
+
