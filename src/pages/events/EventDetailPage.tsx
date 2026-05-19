@@ -7,17 +7,20 @@ import EventMap from '@/components/events/EventMap'
 import JoinLeaveButton from '@/components/events/JoinLeaveButton'
 import ParticipantList from '@/components/events/ParticipantList'
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Star,
-  Edit3,
-  Trash2,
-  Loader2,
-  User,
-  ArrowLeft,
+  Calendar, Clock, MapPin, Star, Edit3, Trash2, ArrowLeft, Users,
 } from 'lucide-react'
 import { formatDate, formatTime, statusColor } from '@/lib/utils'
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  Music: '🎵', Sports: '🏃', Food: '🍕', Arts: '🎭',
+  Tech: '💻', Books: '📚', Nature: '🌿', Wellness: '🧘',
+}
+const CATEGORY_COLOR: Record<string, string> = {
+  Music: 'rgba(108,92,231,0.2)', Sports: 'rgba(0,206,201,0.15)',
+  Food: 'rgba(253,121,168,0.15)', Arts: 'rgba(255,107,107,0.15)',
+  Tech: 'rgba(108,92,231,0.15)', Books: 'rgba(255,234,167,0.12)',
+  Nature: 'rgba(0,206,201,0.12)', Wellness: 'rgba(0,206,201,0.12)',
+}
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -61,148 +64,151 @@ export default function EventDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div style={{ minHeight: '100vh', background: 'var(--z-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '2px solid var(--z-accent2)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
   if (error || !event) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
-        <p className="text-red-500">Event not found or failed to load.</p>
-        <button
-          type="button"
-          onClick={() => navigate('/events')}
-          className="mt-4 rounded-xl bg-primary px-6 py-2 text-sm text-white"
-        >
+      <div style={{ minHeight: '100vh', background: 'var(--z-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>😕</div>
+        <p style={{ color: 'var(--z-coral)', marginBottom: 16, fontSize: 15 }}>Event not found or failed to load.</p>
+        <button onClick={() => navigate('/events')} style={{ background: 'var(--z-accent)', border: 'none', borderRadius: 12, padding: '10px 20px', color: 'white', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
           Back to Events
         </button>
       </div>
     )
   }
 
-  const avgRating =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : null
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : null
+
+  const emoji = CATEGORY_EMOJI[event.category] ?? '✦'
+  const heroBg = CATEGORY_COLOR[event.category] ?? 'rgba(108,92,231,0.15)'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-4xl px-4 py-6">
+    <div style={{ minHeight: '100%', background: 'var(--z-bg)' }}>
+      {/* Hero */}
+      <div style={{ height: 200, background: heroBg, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {event.cover_image_url ? (
+          <img src={event.cover_image_url} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: 64 }}>{emoji}</span>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, var(--z-bg) 100%)' }} />
+
         <button
-          type="button"
           onClick={() => navigate(-1)}
-          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          style={{
+            position: 'absolute', top: 16, left: 16,
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)',
+            color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowLeft size={16} />
         </button>
 
-        <div className="relative mb-6 h-56 overflow-hidden rounded-xl bg-gray-100">
-          {event.cover_image_url ? (
-            <img
-              src={event.cover_image_url}
-              alt={event.title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-gray-300">
-              <Calendar className="h-16 w-16" />
-            </div>
-          )}
-          <span
-            className={`absolute right-3 top-3 rounded-full px-3 py-1 text-sm font-medium ${statusColor(event.status)}`}
-          >
-            {event.status}
-          </span>
+        {isHost && (
+          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => navigate(`/events/${id}/edit`)}
+              style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Edit3 size={14} />
+            </button>
+            <button
+              onClick={() => { if (confirm('Delete this event?')) deleteMutation.mutate() }}
+              style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,107,107,0.2)', border: '1px solid rgba(255,107,107,0.4)', color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '0 20px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--z-accent2)' }}>{event.category}</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor(event.status)}`}>{event.status}</span>
         </div>
 
-        <div className="mb-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-              <span className="mt-1 inline-block rounded-full bg-primary-50 px-3 py-0.5 text-sm font-medium text-primary">
-                {event.category}
-              </span>
+        <h1 className="font-display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--z-text)', lineHeight: 1.2, marginBottom: 18, letterSpacing: '-0.3px' }}>
+          {event.title}
+        </h1>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+          {[
+            { val: `${event.current_count}/${event.max_participants}`, label: 'Going' },
+            { val: `${event.duration_minutes}m`, label: 'Duration' },
+            { val: avgRating ? `⭐ ${avgRating}` : '—', label: 'Host rating' },
+          ].map(({ val, label }) => (
+            <div key={label} style={{ background: 'var(--z-surface)', border: '1px solid var(--z-border)', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+              <div className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--z-text)' }}>{val}</div>
+              <div style={{ fontSize: 11, color: 'var(--z-muted)', marginTop: 2 }}>{label}</div>
             </div>
-            {isHost && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/events/${event.id}/edit`)}
-                  className="flex items-center gap-1 rounded-xl border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Delete this event?')) deleteMutation.mutate()
-                  }}
-                  disabled={deleteMutation.isPending}
-                  className="flex items-center gap-1 rounded-xl border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {deleteMutation.isPending ? '...' : 'Delete'}
-                </button>
-              </div>
-            )}
+          ))}
+        </div>
+
+        {/* Meta */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, background: 'var(--z-surface)', border: '1px solid var(--z-border)', borderRadius: 12, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--z-muted)' }}>
+            <Calendar size={15} style={{ color: 'var(--z-accent2)', flexShrink: 0 }} />
+            {formatDate(event.starts_at)} · {formatTime(event.starts_at)}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--z-muted)' }}>
+            <Clock size={15} style={{ color: 'var(--z-accent2)', flexShrink: 0 }} />
+            {event.duration_minutes} minutes
+          </div>
+          {(event.address || event.city) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--z-muted)' }}>
+              <MapPin size={15} style={{ color: 'var(--z-accent2)', flexShrink: 0 }} />
+              {[event.address, event.city].filter(Boolean).join(', ')}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--z-muted)' }}>
+            <Users size={15} style={{ color: 'var(--z-accent2)', flexShrink: 0 }} />
+            {event.current_count} of {event.max_participants} spots filled
           </div>
         </div>
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Calendar className="h-4 w-4" />
-            <span>{formatDate(event.starts_at)}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Clock className="h-4 w-4" />
-            <span>
-              {formatTime(event.starts_at)} &middot; {event.duration_minutes} min
-            </span>
-          </div>
-          {event.address && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <MapPin className="h-4 w-4" />
-              <span>{event.address}</span>
-            </div>
-          )}
-          {event.city && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <MapPin className="h-4 w-4" />
-              <span>{event.city}</span>
-            </div>
-          )}
-        </div>
-
+        {/* Description */}
         {event.description && (
-          <div className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">About</h3>
-            <p className="text-sm leading-relaxed text-gray-600">{event.description}</p>
+          <div style={{ marginBottom: 20 }}>
+            <h3 className="font-display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--z-text)', marginBottom: 8 }}>About</h3>
+            <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--z-muted)' }}>{event.description}</p>
           </div>
         )}
 
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary">
-              <User className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {host?.full_name || host?.username || 'Host'}
-              </p>
-              {avgRating && (
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  <span>
-                    {avgRating} ({reviews.length} reviews)
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* Host card */}
+        <div style={{ background: 'var(--z-surface)', border: '1px solid var(--z-border)', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #6c5ce7, #fd79a8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: 'white', fontFamily: '"Sora", sans-serif', flexShrink: 0 }}>
+            {(host?.full_name ?? host?.username ?? '?').slice(0, 2).toUpperCase()}
           </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--z-text)' }}>{host?.full_name || host?.username || 'Host'}</div>
+            {avgRating && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--z-muted)', marginTop: 2 }}>
+                <Star size={12} style={{ fill: '#ffeaa7', color: '#ffeaa7' }} />
+                {avgRating} · {reviews.length} reviews
+              </div>
+            )}
+          </div>
+          <span
+            onClick={() => navigate(`/users/${event.host_id}`)}
+            style={{ fontSize: 12, color: 'var(--z-accent2)', fontWeight: 500, cursor: 'pointer' }}
+          >
+            View →
+          </span>
+        </div>
+
+        {/* Join/Leave */}
+        <div style={{ marginBottom: 20 }}>
           <JoinLeaveButton
             eventId={event.id}
             hostId={event.host_id}
@@ -212,47 +218,38 @@ export default function EventDetailPage() {
           />
         </div>
 
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-          <ParticipantList
-            eventId={event.id}
-            hostId={event.host_id}
-            participants={participants}
-          />
+        {/* Participants */}
+        <div style={{ marginBottom: 20 }}>
+          <h3 className="font-display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--z-text)', marginBottom: 12 }}>
+            Participants
+          </h3>
+          <ParticipantList eventId={event.id} hostId={event.host_id} participants={participants} />
         </div>
 
+        {/* Map */}
         {(event.lat || event.lng) && (
-          <div className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Location</h3>
+          <div style={{ marginBottom: 20 }}>
+            <h3 className="font-display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--z-text)', marginBottom: 10 }}>Location</h3>
             <EventMap lat={event.lat} lng={event.lng} readOnly />
           </div>
         )}
 
+        {/* Reviews */}
         {reviews.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">
+          <div style={{ background: 'var(--z-surface)', border: '1px solid var(--z-border)', borderRadius: 14, padding: '16px' }}>
+            <h3 className="font-display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--z-text)', marginBottom: 14 }}>
               Reviews ({reviews.length})
             </h3>
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {reviews.map((review) => (
-                <div key={review.id} className="border-b border-gray-100 pb-3 last:border-0">
-                  <div className="flex items-center gap-1">
+                <div key={review.id} style={{ paddingBottom: 12, borderBottom: '1px solid var(--z-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-3.5 w-3.5 ${
-                          i < review.rating
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
+                      <Star key={i} size={12} style={{ fill: i < review.rating ? '#ffeaa7' : 'transparent', color: i < review.rating ? '#ffeaa7' : 'rgba(255,255,255,0.15)' }} />
                     ))}
-                    <span className="ml-2 text-xs text-gray-400">
-                      {formatDate(review.created_at)}
-                    </span>
+                    <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--z-muted)' }}>{formatDate(review.created_at)}</span>
                   </div>
-                  {review.comment && (
-                    <p className="mt-1 text-sm text-gray-600">{review.comment}</p>
-                  )}
+                  {review.comment && <p style={{ fontSize: 13, color: 'var(--z-muted)', lineHeight: 1.5 }}>{review.comment}</p>}
                 </div>
               ))}
             </div>
