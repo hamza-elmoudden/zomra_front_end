@@ -4,16 +4,25 @@ import { Search, Navigation, SlidersHorizontal } from 'lucide-react'
 import { getAllInterests } from '@/api/interests.api'
 import { listEvents, getNearbyEvents } from '@/api/events.api'
 import { useLocation } from '@/hooks/useLocation'
+import { useAuth } from '@/hooks/useAuth'
 import EventCard from '@/components/events/EventCard'
 import type { Event } from '@/types/event.types'
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  Music: '🎵', Sports: '🏃', Food: '🍕', Arts: '🎭',
+  Tech: '💻', Books: '📚', Nature: '🌿', Wellness: '🧘',
+}
+
 export default function HomePage() {
+  const { user } = useAuth()
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [cityFilter, setCityFilter] = useState('')
   const [radius, setRadius] = useState(25)
   const [useMyLocation, setUseMyLocation] = useState(true)
   const { lat, lng, error: locationError, loading: locationLoading } = useLocation()
+
+  const firstName = user?.full_name?.split(' ')[0] ?? user?.username ?? 'there'
 
   const { data: interests } = useQuery({
     queryKey: ['interests'],
@@ -43,128 +52,171 @@ export default function HomePage() {
     return true
   })
 
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const greetEmoji = hour < 12 ? '☀️' : hour < 18 ? '👋' : '🌙'
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search events..."
-              className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-200"
-            />
-          </div>
+    <div style={{ minHeight: '100%', background: 'var(--z-bg)' }}>
+      {/* Hero */}
+      <div className="px-5 pt-6 pb-4">
+        <p style={{ fontSize: 13, color: 'var(--z-muted)', marginBottom: 4 }}>
+          {greeting} {greetEmoji}
+        </p>
+        <h1
+          className="font-display font-bold"
+          style={{ fontSize: 24, color: 'var(--z-text)', lineHeight: 1.2, marginBottom: 20, letterSpacing: '-0.5px' }}
+        >
+          Find your next{' '}
+          <span className="gradient-text">adventure</span>,{' '}
+          <span style={{ color: 'var(--z-accent2)' }}>{firstName}</span>
+        </h1>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                selectedCategory === null
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              All
-            </button>
-            {(interests ?? []).map((interest) => (
-              <button
-                key={interest.id}
-                type="button"
-                onClick={() =>
-                  setSelectedCategory(
-                    selectedCategory === interest.name ? null : interest.name,
-                  )
-                }
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                  selectedCategory === interest.name
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {interest.name}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Navigation className="h-4 w-4 text-gray-400" />
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={useMyLocation}
-                  onChange={() => setUseMyLocation(!useMyLocation)}
-                  className="rounded border-gray-300 text-primary focus:ring-primary"
-                  disabled={locationLoading || !!locationError}
-                />
-                Use my location
-              </label>
-            </div>
-            {useMyLocation && lat && lng && (
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-400" />
-                <input
-                  type="range"
-                  min={1}
-                  max={50}
-                  value={radius}
-                  onChange={(e) => setRadius(Number(e.target.value))}
-                  className="h-2 w-24 cursor-pointer appearance-none rounded-lg bg-gray-200 accent-primary"
-                />
-                <span className="text-sm text-gray-500">{radius} km</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
-                placeholder="City..."
-                className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
-                disabled={useMyLocation && !!lat}
-              />
-            </div>
-          </div>
+        {/* Search */}
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'var(--z-surface2)',
+            border: '1px solid var(--z-border)',
+            borderRadius: 'var(--z-radius)',
+            padding: '10px 14px',
+            marginBottom: 12,
+          }}
+        >
+          <Search size={16} style={{ color: 'var(--z-muted)', flexShrink: 0 }} />
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search events..."
+            style={{
+              flex: 1, background: 'none', border: 'none', outline: 'none',
+              fontSize: 14, color: 'var(--z-text)', fontFamily: 'inherit',
+            }}
+          />
         </div>
 
-        <div className="mt-6">
-          {isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="animate-pulse rounded-xl border border-gray-200 bg-white">
-                  <div className="h-40 rounded-t-xl bg-gray-200" />
-                  <div className="space-y-3 p-4">
-                    <div className="h-4 w-3/4 rounded bg-gray-200" />
-                    <div className="h-3 w-1/2 rounded bg-gray-200" />
-                    <div className="h-3 w-1/3 rounded bg-gray-200" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-              <p className="text-red-600">Failed to load events. Please try again.</p>
-            </div>
-          ) : filteredEvents.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-              <Search className="mx-auto h-12 w-12 text-gray-300" />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">No events found</h3>
-              <p className="mt-1 text-gray-500">
-                Try adjusting your filters or search in a different city.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+        {/* Location controls */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--z-muted)', cursor: 'pointer' }}>
+            <Navigation size={14} style={{ color: 'var(--z-mint)' }} />
+            <input
+              type="checkbox"
+              checked={useMyLocation}
+              onChange={() => setUseMyLocation(!useMyLocation)}
+              disabled={locationLoading || !!locationError}
+            />
+            Use my location
+          </label>
+          {useMyLocation && lat && lng && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+              <SlidersHorizontal size={14} style={{ color: 'var(--z-muted)', flexShrink: 0 }} />
+              <input
+                type="range" min={1} max={50} value={radius}
+                onChange={(e) => setRadius(Number(e.target.value))}
+                style={{ flex: 1 }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--z-muted)', minWidth: 40 }}>{radius} km</span>
             </div>
           )}
+          {!useMyLocation && (
+            <input
+              type="text" value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              placeholder="City..."
+              style={{
+                background: 'var(--z-surface2)', border: '1px solid var(--z-border)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 13, color: 'var(--z-text)',
+                outline: 'none', width: 120, fontFamily: 'inherit',
+              }}
+            />
+          )}
         </div>
+      </div>
+
+      {/* Category Pills */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 20px 16px', scrollbarWidth: 'none' }}>
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`z-pill ${selectedCategory === null ? 'active' : ''}`}
+        >
+          ✦ All
+        </button>
+        {(interests ?? []).map((interest) => (
+          <button
+            key={interest.id}
+            onClick={() => setSelectedCategory(selectedCategory === interest.name ? null : interest.name)}
+            className={`z-pill ${selectedCategory === interest.name ? 'active' : ''}`}
+          >
+            {CATEGORY_EMOJI[interest.name] ?? ''} {interest.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Location pill */}
+      {useMyLocation && lat && (
+        <div style={{ padding: '0 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div
+            className="location-pulse"
+            style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--z-mint)', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 13, color: 'var(--z-muted)' }}>
+            Showing events within <strong style={{ color: 'var(--z-text)' }}>{radius}km</strong>
+          </span>
+        </div>
+      )}
+
+      {/* Section */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', marginBottom: 14 }}>
+        <h2 className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--z-text)' }}>
+          {selectedCategory ? `${selectedCategory} events` : 'Happening soon'}
+        </h2>
+        <span style={{ fontSize: 12, color: 'var(--z-accent2)', fontWeight: 500, cursor: 'pointer' }}>
+          See all →
+        </span>
+      </div>
+
+      {/* Events Grid */}
+      <div style={{ padding: '0 16px' }}>
+        {isLoading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 220, borderRadius: 'var(--z-radius)' }} />
+            ))}
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.2)',
+              borderRadius: 'var(--z-radius)', padding: 24, textAlign: 'center',
+            }}
+          >
+            <p style={{ color: '#ff6b6b', fontSize: 14 }}>Failed to load events. Please try again.</p>
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <div
+            style={{
+              background: 'var(--z-surface)', border: '1px solid var(--z-border)',
+              borderRadius: 'var(--z-radius)', padding: '40px 20px', textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+            <h3 className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--z-text)', marginBottom: 6 }}>
+              No events found
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--z-muted)' }}>
+              Try adjusting your filters or search in a different city.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {filteredEvents.map((event: Event, i: number) => (
+              <div key={event.id} className={`animate-fade-in stagger-${Math.min(i + 1, 5)}`}>
+                <EventCard event={event} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
