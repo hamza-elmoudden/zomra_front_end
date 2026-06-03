@@ -64,9 +64,14 @@ api.interceptors.response.use(
     }
 
     try {
+      // Backend expects the refresh token as Bearer in Authorization header
       const res = await axios.post<AuthTokens>(
         `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
-        { refreshToken },
+        {},
+        {
+          headers: { Authorization: `Bearer ${refreshToken}` },
+          withCredentials: true,
+        },
       )
       const { accessToken, refreshToken: newRefreshToken } = res.data
       useAuthStore.getState().setTokens(accessToken, newRefreshToken)
