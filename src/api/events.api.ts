@@ -9,19 +9,18 @@ export interface ListEventsParams {
   limit?: number
 }
 
+// Backend DTO uses camelCase: startsAt, durationMinutes, maxParticipants
 export interface CreateEventDto {
   title: string
   category: string
   description?: string
-  starts_at: string
-  duration_minutes: number
-  max_participants: number
+  startsAt: string          // backend field name
+  durationMinutes?: number  // backend field name
+  maxParticipants?: number  // backend field name
   address?: string
   city?: string
-  cover_image_url?: string
   lat?: number
   lng?: number
-  is_public?: boolean
 }
 
 export interface UpdateEventDto extends Partial<CreateEventDto> {
@@ -36,24 +35,15 @@ export function listEvents(params?: ListEventsParams): Promise<Event[]> {
   return api.get<Event[]>('/events', { params }).then((r) => r.data)
 }
 
-export function getNearbyEvents(
-  lat: number,
-  lng: number,
-  radiusKm: number,
-): Promise<Event[]> {
-  return api
-    .get<Event[]>('/events/nearby', { params: { lat, lng, radiusKm } })
-    .then((r) => r.data)
+export function getNearbyEvents(lat: number, lng: number, radiusKm: number): Promise<Event[]> {
+  return api.get<Event[]>('/events/nearby', { params: { lat, lng, radiusKm } }).then((r) => r.data)
 }
 
 export function getEventById(id: string): Promise<Event> {
   return api.get<Event>(`/events/${id}`).then((r) => r.data)
 }
 
-export function updateEvent(
-  id: string,
-  data: UpdateEventDto,
-): Promise<Event> {
+export function updateEvent(id: string, data: UpdateEventDto): Promise<Event> {
   return api.patch<Event>(`/events/${id}`, data).then((r) => r.data)
 }
 
@@ -62,21 +52,15 @@ export function deleteEvent(id: string): Promise<void> {
 }
 
 export function joinEvent(eventId: string): Promise<EventParticipant> {
-  return api
-    .post<EventParticipant>(`/events/${eventId}/join`)
-    .then((r) => r.data)
+  return api.post<EventParticipant>(`/events/${eventId}/join`).then((r) => r.data)
 }
 
 export function leaveEvent(eventId: string): Promise<void> {
   return api.post(`/events/${eventId}/leave`)
 }
 
-export function getParticipants(
-  eventId: string,
-): Promise<EventParticipant[]> {
-  return api
-    .get<EventParticipant[]>(`/events/${eventId}/participants`)
-    .then((r) => r.data)
+export function getParticipants(eventId: string): Promise<EventParticipant[]> {
+  return api.get<EventParticipant[]>(`/events/${eventId}/participants`).then((r) => r.data)
 }
 
 export function manageParticipant(
@@ -86,5 +70,3 @@ export function manageParticipant(
 ): Promise<void> {
   return api.patch(`/events/${eventId}/participants/${userId}`, { action })
 }
-
-
