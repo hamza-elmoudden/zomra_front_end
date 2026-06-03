@@ -50,13 +50,15 @@ export default function EditEventPage() {
         </div>
         <EventForm
           defaultValues={{
-            title: event.title, category: event.category,
+            title: event.title,
+            category: event.category,
             description: event.description || '',
-            starts_at: formatStartsAt(event.starts_at),
-            duration_minutes: event.duration_minutes,
-            max_participants: event.max_participants,
-            address: event.address || '', city: event.city || '',
-            cover_image_url: event.cover_image_url || '',
+            // Map backend snake_case response → camelCase form fields
+            startsAt: formatStartsAt(event.starts_at),
+            durationMinutes: event.duration_minutes,
+            maxParticipants: event.max_participants,
+            address: event.address || '',
+            city: event.city || '',
           }}
           defaultLat={event.lat}
           defaultLng={event.lng}
