@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'admin'
+export type UserRole = 'user' | 'admin' | 'observer'
 
 export interface User {
   id: string
@@ -17,4 +17,14 @@ export interface User {
   is_active: boolean
   created_at: string
   role: UserRole
+}
+
+export interface StaffUser {
+  id: string
+  username: string
+  email: string
+  full_name: string
+  role: 'admin' | 'observer'
+  is_active: boolean
+  created_at: string
 }
