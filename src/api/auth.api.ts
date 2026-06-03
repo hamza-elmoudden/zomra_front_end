@@ -5,7 +5,9 @@ import { useAuthStore } from '@/store/authStore'
 
 export async function refreshToken(): Promise<AuthTokens> {
   const token = useAuthStore.getState().refreshToken
-  const res = await api.post<AuthTokens>('/auth/refresh', { refreshToken: token })
+  const res = await api.post<AuthTokens>('/auth/refresh', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
   return res.data
 }
 
@@ -13,6 +15,7 @@ export async function logout(): Promise<void> {
   await api.post('/auth/logout')
 }
 
+// GET /auth/me — returns user from JWT guard
 export async function getMe(): Promise<User> {
   const res = await api.get<User>('/auth/me')
   return res.data
