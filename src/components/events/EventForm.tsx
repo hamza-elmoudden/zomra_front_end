@@ -11,12 +11,11 @@ const eventFormSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   category: z.string().min(1, 'Category is required'),
   description: z.string().optional(),
-  starts_at: z.string().min(1, 'Start date/time is required'),
-  duration_minutes: z.coerce.number().min(15, 'Minimum 15 minutes'),
-  max_participants: z.coerce.number().min(2, 'Minimum 2 participants'),
+  startsAt: z.string().min(1, 'Start date/time is required'),
+  durationMinutes: z.coerce.number().min(15, 'Minimum 15 minutes'),
+  maxParticipants: z.coerce.number().min(2, 'Minimum 2 participants'),
   address: z.string().optional(),
   city: z.string().optional(),
-  cover_image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   status: z.string().optional(),
 })
 
@@ -56,13 +55,16 @@ export default function EventForm({ defaultValues, defaultLat, defaultLng, onSub
 
   const handleFormSubmit = (formData: EventFormValues) => {
     onSubmit({
-      title: formData.title, category: formData.category,
+      title: formData.title,
+      category: formData.category,
       description: formData.description || undefined,
-      starts_at: formData.starts_at, duration_minutes: formData.duration_minutes,
-      max_participants: formData.max_participants,
-      address: formData.address || undefined, city: formData.city || undefined,
-      cover_image_url: formData.cover_image_url || undefined,
-      lat: lat ?? undefined, lng: lng ?? undefined,
+      startsAt: formData.startsAt,             // camelCase → backend DTO
+      durationMinutes: formData.durationMinutes,
+      maxParticipants: formData.maxParticipants,
+      address: formData.address || undefined,
+      city: formData.city || undefined,
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
     })
   }
 
@@ -100,20 +102,20 @@ export default function EventForm({ defaultValues, defaultLat, defaultLng, onSub
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
           <label style={labelStyle}>Starts At</label>
-          <input type="datetime-local" {...register('starts_at')} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-          {errors.starts_at && <p style={errStyle}>{errors.starts_at.message}</p>}
+          <input type="datetime-local" {...register('startsAt')} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          {errors.startsAt && <p style={errStyle}>{errors.startsAt.message}</p>}
         </div>
         <div>
           <label style={labelStyle}>Duration (min)</label>
-          <input type="number" {...register('duration_minutes')} style={inputStyle} placeholder="60" onFocus={onFocus} onBlur={onBlur} />
-          {errors.duration_minutes && <p style={errStyle}>{errors.duration_minutes.message}</p>}
+          <input type="number" {...register('durationMinutes')} style={inputStyle} placeholder="60" onFocus={onFocus} onBlur={onBlur} />
+          {errors.durationMinutes && <p style={errStyle}>{errors.durationMinutes.message}</p>}
         </div>
       </div>
 
       <div>
         <label style={labelStyle}>Max Participants</label>
-        <input type="number" {...register('max_participants')} style={inputStyle} placeholder="20" onFocus={onFocus} onBlur={onBlur} />
-        {errors.max_participants && <p style={errStyle}>{errors.max_participants.message}</p>}
+        <input type="number" {...register('maxParticipants')} style={inputStyle} placeholder="20" onFocus={onFocus} onBlur={onBlur} />
+        {errors.maxParticipants && <p style={errStyle}>{errors.maxParticipants.message}</p>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -125,12 +127,6 @@ export default function EventForm({ defaultValues, defaultLat, defaultLng, onSub
           <label style={labelStyle}>City</label>
           <input {...register('city')} style={inputStyle} placeholder="Casablanca" onFocus={onFocus} onBlur={onBlur} />
         </div>
-      </div>
-
-      <div>
-        <label style={labelStyle}>Cover Image URL</label>
-        <input {...register('cover_image_url')} style={inputStyle} placeholder="https://…" onFocus={onFocus} onBlur={onBlur} />
-        {errors.cover_image_url && <p style={errStyle}>{errors.cover_image_url.message}</p>}
       </div>
 
       {showStatus && (
