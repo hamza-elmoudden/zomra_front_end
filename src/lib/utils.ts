@@ -15,7 +15,7 @@ export function formatDate(dateString: string): string {
 
 export function formatTime(dateString: string): string {
   return new Date(dateString).toLocaleTimeString('en-US', {
-    hour: 'short',
+    hour: 'numeric',
     minute: '2-digit',
   })
 }
