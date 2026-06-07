@@ -1,5 +1,6 @@
 import api from './axios'
 import type { Event, EventParticipant } from '@/types/event.types'
+import { getEventMedia } from './media.api'
 
 export interface ListEventsParams {
   city?: string
@@ -27,20 +28,49 @@ export interface UpdateEventDto extends Partial<CreateEventDto> {
   status?: string
 }
 
+/**
+ * If the backend doesn't populate cover_image_url, fetch the first media
+ * item for each event and attach it. Fires requests in parallel.
+ */
+async function attachCoverImages(events: Event[]): Promise<Event[]> {
+  const results = await Promise.allSettled(
+    events.map(async (event) => {
+      if (event.cover_image_url) return event
+      const media = await getEventMedia(event.id)
+      const first = media.find((m) => m.media_type === 'photo') ?? media[0]
+      return first ? { ...event, cover_image_url: first.url } : event
+    }),
+  )
+  return results.map((r, i) => (r.status === 'fulfilled' ? r.value : events[i]))
+}
+
+// Uses the dedicated GET /events/my endpoint (requires auth)
+export function getMyEvents(): Promise<Event[]> {
+  return api.get<Event[]>('/events/my').then((r) => attachCoverImages(r.data))
+}
+
 export function createEvent(data: CreateEventDto): Promise<Event> {
   return api.post<Event>('/events', data).then((r) => r.data)
 }
 
 export function listEvents(params?: ListEventsParams): Promise<Event[]> {
-  return api.get<Event[]>('/events', { params }).then((r) => r.data)
+  return api.get<Event[]>('/events', { params }).then((r) => attachCoverImages(r.data))
 }
 
 export function getNearbyEvents(lat: number, lng: number, radiusKm: number): Promise<Event[]> {
-  return api.get<Event[]>('/events/nearby', { params: { lat, lng, radiusKm } }).then((r) => r.data)
+  return api
+    .get<Event[]>('/events/nearby', { params: { lat, lng, radiusKm } })
+    .then((r) => attachCoverImages(r.data))
 }
 
 export function getEventById(id: string): Promise<Event> {
-  return api.get<Event>(`/events/${id}`).then((r) => r.data)
+  return api.get<Event>(`/events/${id}`).then(async (r) => {
+    const event = r.data
+    if (event.cover_image_url) return event
+    const media = await getEventMedia(event.id)
+    const first = media.find((m) => m.media_type === 'photo') ?? media[0]
+    return first ? { ...event, cover_image_url: first.url } : event
+  })
 }
 
 export function updateEvent(id: string, data: UpdateEventDto): Promise<Event> {
