@@ -10,6 +10,7 @@ import EventsListPage from '@/pages/events/EventsListPage'
 import EventDetailPage from '@/pages/events/EventDetailPage'
 import CreateEventPage from '@/pages/events/CreateEventPage'
 import EditEventPage from '@/pages/events/EditEventPage'
+import EventMediaPage from '@/pages/events/EventMediaPage'
 import MyProfilePage from '@/pages/profile/MyProfilePage'
 import UserProfilePage from '@/pages/profile/UserProfilePage'
 import MessagingPage from '@/pages/messaging/MessagingPage'
@@ -48,23 +49,24 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public app routes */}
+        {/* Public */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/auth/success" element={<AuthSuccessPage />} />
 
-        {/* Main app routes */}
+        {/* Main app */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route path="/home" element={<HomePage />} />
           <Route path="/events" element={<EventsListPage />} />
           <Route path="/events/new" element={<CreateEventPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/events/:id/edit" element={<EditEventPage />} />
+          <Route path="/events/:id/media" element={<EventMediaPage />} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/users/:id" element={<UserProfilePage />} />
           <Route path="/messages" element={<MessagingPage />} />
         </Route>
 
-        {/* Admin routes */}
+        {/* Admin */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
