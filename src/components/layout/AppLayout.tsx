@@ -4,6 +4,7 @@ import { Home, Compass, PlusCircle, MessageCircle, User, Bell, Plus } from 'luci
 import { useAuth } from '@/hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getNotifications, markNotificationRead } from '@/api/notifications.api'
+import { useSocket } from '@/hooks/useSocket'
 
 const navItems = [
   { to: '/home', icon: Home, label: 'Home' },
@@ -15,6 +16,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user } = useAuth()
+  useSocket() // connect WebSocket and wire all real-time events
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [notifOpen, setNotifOpen] = useState(false)
