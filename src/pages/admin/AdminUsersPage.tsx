@@ -164,24 +164,24 @@ export default function AdminUsersPage() {
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       fontSize: 11, padding: '3px 8px', borderRadius: 100,
-                      background: s.is_active ? 'rgba(0,206,201,0.15)' : 'rgba(255,107,107,0.15)',
-                      color: s.is_active ? 'var(--z-mint)' : 'var(--z-coral)',
-                    }}>{s.is_active ? 'Active' : 'Suspended'}</span>
+                      background: s.status === 'active' ? 'rgba(0,206,201,0.15)' : 'rgba(255,107,107,0.15)',
+                      color: s.status === 'active' ? 'var(--z-mint)' : 'var(--z-coral)',
+                    }}>{s.status === 'active' ? 'Active' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</span>
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--z-muted)' }}>
                     {new Date(s.created_at).toLocaleDateString()}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <button
-                      onClick={() => suspendMutation.mutate({ id: s.id, suspend: s.is_active })}
+                      onClick={() => suspendMutation.mutate({ id: s.id, suspend: s.status === 'active' })}
                       style={{
                         fontSize: 12, padding: '5px 12px', borderRadius: 8, border: 'none',
-                        background: s.is_active ? 'rgba(255,107,107,0.15)' : 'rgba(0,206,201,0.15)',
-                        color: s.is_active ? 'var(--z-coral)' : 'var(--z-mint)',
+                        background: s.status === 'active' ? 'rgba(255,107,107,0.15)' : 'rgba(0,206,201,0.15)',
+                        color: s.status === 'active' ? 'var(--z-coral)' : 'var(--z-mint)',
                         cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
-                      {s.is_active ? 'Suspend' : 'Activate'}
+                      {s.status === 'active' ? 'Suspend' : 'Activate'}
                     </button>
                   </td>
                 </tr>
