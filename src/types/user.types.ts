@@ -1,4 +1,5 @@
 export type UserRole = 'user' | 'admin' | 'observer'
+export type UserStatus = 'active' | 'blocked' | 'banned'
 
 export interface User {
   id: string
@@ -14,7 +15,7 @@ export interface User {
   reputation_score: number
   total_reviews: number
   is_verified: boolean
-  is_active: boolean
+  status: UserStatus
   created_at: string
   role: UserRole
 }
@@ -25,6 +26,6 @@ export interface StaffUser {
   email: string
   full_name: string
   role: 'admin' | 'observer'
-  is_active: boolean
+  status: UserStatus
   created_at: string
 }
