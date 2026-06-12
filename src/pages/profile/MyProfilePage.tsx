@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { getMe, getUserReviews, updateProfile } from '@/api/users.api'
+import { getMe, getUserReviews, updateProfile, uploadAvatar } from '@/api/users.api'
 import type { UpdateUserProfileDto } from '@/api/users.api'
 import { getMyEvents, deleteEvent } from '@/api/events.api'
 import { useAuth } from '@/hooks/useAuth'
 import {
   Star, Edit3, LogOut, Shield, MapPin, Calendar,
-  Plus, Trash2, ImagePlus, ChevronRight, Clock, X, Check,
+  Plus, Trash2, ImagePlus, ChevronRight, Clock, X, Check, Camera,
 } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
 
@@ -34,6 +34,8 @@ export default function MyProfilePage() {
   // Edit modal state
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState<UpdateUserProfileDto>({})
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -66,6 +68,23 @@ export default function MyProfilePage() {
     },
   })
 
+  const avatarMutation = useMutation({
+    mutationFn: (file: File) => uploadAvatar(file),
+    onSuccess: (data) => {
+      setAvatarPreview(null)
+      setAvatarFile(null)
+      setEditForm((f) => ({ ...f, avatar_url: data.avatar_url }))
+      qc.invalidateQueries({ queryKey: ['me'] })
+    },
+  })
+
+  function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
   function openEdit() {
     setEditForm({
       full_name: profile?.full_name ?? '',
@@ -75,18 +94,18 @@ export default function MyProfilePage() {
       country: profile?.country ?? '',
       phone: '',
     })
+    setAvatarFile(null)
+    setAvatarPreview(null)
     setEditing(true)
   }
 
   function handleEditSubmit() {
-    // Remove empty strings so we don't overwrite with blanks
     const payload: UpdateUserProfileDto = {}
-    if (editForm.full_name)  payload.full_name  = editForm.full_name
-    if (editForm.bio)         payload.bio         = editForm.bio
-    if (editForm.avatar_url)  payload.avatar_url  = editForm.avatar_url
-    if (editForm.city)        payload.city        = editForm.city
-    if (editForm.country)     payload.country     = editForm.country
-    if (editForm.phone)       payload.phone       = editForm.phone
+    if (editForm.full_name) payload.full_name = editForm.full_name
+    if (editForm.bio)        payload.bio        = editForm.bio
+    if (editForm.city)       payload.city       = editForm.city
+    if (editForm.country)    payload.country    = editForm.country
+    if (editForm.phone)      payload.phone      = editForm.phone
     updateMutation.mutate(payload)
   }
 
@@ -129,14 +148,53 @@ export default function MyProfilePage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Avatar upload */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--z-muted)', marginBottom: 8, display: 'block', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Profile Photo
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#6c5ce7,#fd79a8)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(162,155,254,0.3)' }}>
+                    {avatarPreview
+                      ? <img src={avatarPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : profile?.avatar_url
+                      ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ fontSize: 22, fontWeight: 700, color: 'white' }}>{initials}</span>
+                    }
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, background: 'var(--z-surface2)', border: '1px solid var(--z-border)', color: 'var(--z-text)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Camera size={14} />
+                      {avatarFile ? avatarFile.name.slice(0, 20) + '…' : 'Choose photo'}
+                      <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAvatarFileChange} style={{ display: 'none' }} />
+                    </label>
+                    {avatarFile && (
+                      <button
+                        onClick={() => avatarMutation.mutate(avatarFile)}
+                        disabled={avatarMutation.isPending}
+                        style={{ marginTop: 8, display: 'block', padding: '7px 14px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6c5ce7,#a29bfe)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: avatarMutation.isPending ? 0.7 : 1 }}
+                      >
+                        {avatarMutation.isPending ? 'Uploading…' : 'Upload photo'}
+                      </button>
+                    )}
+                    {avatarMutation.isError && (
+                      <p style={{ fontSize: 11, color: 'var(--z-coral)', marginTop: 4 }}>Upload failed, try again</p>
+                    )}
+                    {avatarMutation.isSuccess && (
+                      <p style={{ fontSize: 11, color: 'var(--z-mint)', marginTop: 4 }}>✓ Photo updated</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {(
                 [
-                  { key: 'full_name',  label: 'Full Name',    placeholder: 'Your full name' },
-                  { key: 'bio',        label: 'Bio',          placeholder: 'Tell people about yourself', textarea: true },
-                  { key: 'avatar_url', label: 'Avatar URL',   placeholder: 'https://…' },
-                  { key: 'city',       label: 'City',         placeholder: 'Your city' },
-                  { key: 'country',    label: 'Country',      placeholder: 'Your country' },
-                  { key: 'phone',      label: 'Phone',        placeholder: '+212…' },
+                  { key: 'full_name', label: 'Full Name',  placeholder: 'Your full name' },
+                  { key: 'bio',       label: 'Bio',        placeholder: 'Tell people about yourself', textarea: true },
+                  { key: 'city',      label: 'City',       placeholder: 'Your city' },
+                  { key: 'country',   label: 'Country',    placeholder: 'Your country' },
+                  { key: 'phone',     label: 'Phone',      placeholder: '+212…' },
                 ] as { key: keyof UpdateUserProfileDto; label: string; placeholder: string; textarea?: boolean }[]
               ).map(({ key, label, placeholder, textarea }) => (
                 <div key={key}>
