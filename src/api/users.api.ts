@@ -36,3 +36,14 @@ export function updateUserStatus(id: string, status: string): Promise<User> {
 export function getUserReviews(userId: string): Promise<Review[]> {
   return api.get<Review[]>(`/users/${userId}/reviews`).then((r) => r.data)
 }
+
+// POST /users/me/avatar — multipart file upload, returns { avatar_url: string }
+export function uploadAvatar(file: File): Promise<{ avatar_url: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  return api
+    .post<{ avatar_url: string }>('/users/me/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((r) => r.data)
+}
