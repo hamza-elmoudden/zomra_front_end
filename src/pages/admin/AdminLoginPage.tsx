@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
         reputation_score: 0,
         total_reviews: 0,
         is_verified: true,
-        is_active: true,
+        status: 'active' as const,
         created_at: new Date().toISOString(),
       } as User)
       navigate('/admin/dashboard')
