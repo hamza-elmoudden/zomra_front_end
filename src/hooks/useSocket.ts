@@ -1,36 +1,23 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getSocket, disconnectSocket } from '@/lib/socket'
 import { useAuthStore } from '@/store/authStore'
+import { getUserById } from '@/api/users.api'
 import type { Message, GroupMessage } from '@/types/message.types'
 import type { Notification } from '@/api/notifications.api'
 
-/**
- * Connects to the /messaging WebSocket namespace and wires all server-emitted
- * events into the React Query cache so every subscriber re-renders automatically.
- *
- * Events handled:
- *  - newMessage             → appends to ['messages', conversationId]
- *  - newGroupMessage        → appends to ['groupMessages', eventId]
- *  - messageDeleted         → removes from ['messages', conversationId]
- *  - eventJoinRequest       → invalidates ['events', 'participants']
- *  - participantStatusUpdate → invalidates ['events'] + appends a notification
- *
- * Call once at the top of the authenticated layout (AppLayout).
- */
 export function useSocket() {
   const qc = useQueryClient()
   const accessToken = useAuthStore((s) => s.accessToken)
-  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null)
 
   useEffect(() => {
     if (!accessToken) return
 
     const sock = getSocket(accessToken)
-    socketRef.current = sock
 
-    // ── newMessage ──────────────────────────────────────────────
-    sock.on('newMessage', (message: Message) => {
+    // ── Define named handlers so we can remove exactly these ──
+
+    function onNewMessage(message: Message) {
       qc.setQueryData<Message[]>(
         ['messages', message.conversation_id],
         (prev = []) => {
@@ -38,12 +25,10 @@ export function useSocket() {
           return [...prev, message]
         },
       )
-      // Bubble the conversation list to the top
       qc.invalidateQueries({ queryKey: ['conversations'] })
-    })
+    }
 
-    // ── newGroupMessage ─────────────────────────────────────────
-    sock.on('newGroupMessage', (message: GroupMessage) => {
+    function onNewGroupMessage(message: GroupMessage) {
       qc.setQueryData<GroupMessage[]>(
         ['groupMessages', message.event_id],
         (prev = []) => {
@@ -51,72 +36,102 @@ export function useSocket() {
           return [...prev, message]
         },
       )
-    })
+    }
 
-    // ── messageDeleted ──────────────────────────────────────────
-    sock.on('messageDeleted', ({ messageId }: { messageId: string }) => {
-      // Mark is_deleted on every conversation messages cache that has it
+    function onMessageDeleted({ messageId }: { messageId: string }) {
       qc.getQueriesData<Message[]>({ queryKey: ['messages'] }).forEach(([key, msgs]) => {
         if (!msgs) return
-        qc.setQueryData<Message[]>(key, msgs.map((m) =>
-          m.id === messageId ? { ...m, is_deleted: true, content: '🚫 Message deleted' } : m,
-        ))
+        qc.setQueryData<Message[]>(
+          key,
+          msgs.map((m) =>
+            m.id === messageId
+              ? { ...m, is_deleted: true, content: '🚫 Message deleted' }
+              : m,
+          ),
+        )
       })
-    })
+    }
 
-    // ── eventJoinRequest ────────────────────────────────────────
-    sock.on(
-      'eventJoinRequest',
-      (data: { eventId: string; userId: string; userName: string; eventTitle: string }) => {
-        qc.invalidateQueries({ queryKey: ['events', data.eventId, 'participants'] })
-        // Inject a transient notification into the notifications cache
-        qc.setQueryData<Notification[]>(['notifications'], (prev = []) => [
-          {
-            id: `join-${data.userId}-${Date.now()}`,
-            user_id: data.userId,
-            title: 'New join request',
-            body: `${data.userName} wants to join "${data.eventTitle}"`,
-            is_read: false,
-            created_at: new Date().toISOString(),
-          },
-          ...prev,
-        ])
-      },
-    )
+    async function onEventJoinRequest(data: {
+      eventId: string
+      userId: string
+      userName: string
+      eventTitle: string
+    }) {
+      qc.invalidateQueries({ queryKey: ['event', data.eventId, 'participants'] })
 
-    // ── participantStatusUpdate ─────────────────────────────────
-    sock.on(
-      'participantStatusUpdate',
-      (data: { eventId: string; eventTitle: string; status: string }) => {
-        qc.invalidateQueries({ queryKey: ['events', data.eventId] })
-        qc.invalidateQueries({ queryKey: ['events', 'my'] })
-        qc.setQueryData<Notification[]>(['notifications'], (prev = []) => [
-          {
-            id: `status-${data.eventId}-${Date.now()}`,
-            user_id: '',
-            title: 'Participation update',
-            body: `Your request for "${data.eventTitle}" was ${data.status}`,
-            is_read: false,
-            created_at: new Date().toISOString(),
-          },
-          ...prev,
-        ])
-      },
-    )
+      let displayName = data.userName
+      try {
+        const cached = qc.getQueryData<{ full_name?: string; username?: string }>(['user', data.userId])
+        if (cached) {
+          displayName = cached.full_name ?? cached.username ?? data.userName
+        } else {
+          const fetched = await getUserById(data.userId)
+          displayName = fetched.full_name ?? fetched.username ?? data.userName
+          qc.setQueryData(['user', data.userId], fetched)
+        }
+      } catch { /* fallback to data.userName */ }
 
+      qc.setQueryData<Notification[]>(['notifications'], (prev = []) => [
+        {
+          id: `join-${data.userId}-${Date.now()}`,
+          user_id: data.userId,
+          title: '📬 New join request',
+          body: `${displayName} wants to join "${data.eventTitle}"`,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+    }
+
+    function onParticipantStatusUpdate(data: {
+      eventId: string
+      eventTitle: string
+      status: string
+    }) {
+      qc.invalidateQueries({ queryKey: ['event', data.eventId] })
+      qc.invalidateQueries({ queryKey: ['event', data.eventId, 'participants'] })
+      qc.invalidateQueries({ queryKey: ['events', 'my'] })
+
+      // If accepted → join the event group chat room automatically
+      if (data.status === 'accepted') {
+        const sock = getSocket(accessToken!)
+        const joinRoom = () => sock.emit('joinEventRoom', { eventId: data.eventId })
+        if (sock.connected) { joinRoom() } else { sock.once('connect', joinRoom) }
+      }
+
+      qc.setQueryData<Notification[]>(['notifications'], (prev = []) => [
+        {
+          id: `status-${data.eventId}-${Date.now()}`,
+          user_id: '',
+          title: data.status === 'accepted' ? '✅ Request accepted' : '❌ Request declined',
+          body: `Your request for "${data.eventTitle}" was ${data.status}`,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+    }
+
+    // ── Register ───────────────────────────────────────────────
+    sock.on('newMessage', onNewMessage)
+    sock.on('newGroupMessage', onNewGroupMessage)
+    sock.on('messageDeleted', onMessageDeleted)
+    sock.on('eventJoinRequest', onEventJoinRequest)
+    sock.on('participantStatusUpdate', onParticipantStatusUpdate)
+
+    // ── Cleanup: remove ONLY our named handlers ────────────────
     return () => {
-      sock.off('newMessage')
-      sock.off('newGroupMessage')
-      sock.off('messageDeleted')
-      sock.off('eventJoinRequest')
-      sock.off('participantStatusUpdate')
+      sock.off('newMessage', onNewMessage)
+      sock.off('newGroupMessage', onNewGroupMessage)
+      sock.off('messageDeleted', onMessageDeleted)
+      sock.off('eventJoinRequest', onEventJoinRequest)
+      sock.off('participantStatusUpdate', onParticipantStatusUpdate)
     }
   }, [accessToken, qc])
 
-  // Disconnect on logout (token gone)
   useEffect(() => {
     if (!accessToken) disconnectSocket()
   }, [accessToken])
-
-  return socketRef
 }
