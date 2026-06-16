@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEventById, deleteEvent, getParticipants, manageParticipant } from '@/api/events.api'
 import { getUserById, getUserReviews } from '@/api/users.api'
@@ -254,10 +254,13 @@ function SenderName({ senderId }: { senderId: string }) {
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const userId = useAuthStore((s) => s.user?.id)
   const accessToken = useAuthStore((s) => s.accessToken)
   const queryClient = useQueryClient()
-  const [tab, setTab] = useState<'info' | 'people' | 'chat'>('info')
+  const [tab, setTab] = useState<'info' | 'people' | 'chat'>(
+    (location.state as any)?.tab ?? 'info',
+  )
 
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['event', id],
