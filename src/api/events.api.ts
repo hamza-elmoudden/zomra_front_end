@@ -100,3 +100,7 @@ export function manageParticipant(
 ): Promise<void> {
   return api.patch(`/events/${eventId}/participants/${userId}`, { action })
 }
+// GET /events/my/joined — events the user joined as accepted participant
+export function getJoinedEvents(): Promise<Event[]> {
+  return api.get<Event[]>('/events/my/joined').then((r) => attachCoverImages(r.data))
+}
