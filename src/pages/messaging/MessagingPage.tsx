@@ -130,22 +130,27 @@ export default function MessagingPage() {
 
   // ── Data: DM messages ─────────────────────────────────────────
   const convId = active?.type === 'dm' ? active.convId : null
-  const { data: dmMessages = [], isLoading: loadingDm } = useQuery({
+  const { data: dmMessages = [], isLoading: loadingDm, error: dmError } = useQuery({
     queryKey: ['messages', convId],
     queryFn: () => getMessages(convId!),
     enabled: !!convId,
+    retry: false,
   })
 
   // ── Data: Group messages ──────────────────────────────────────
   const eventId = active?.type === 'group' ? active.eventId : null
-  const { data: groupMessages = [], isLoading: loadingGroup } = useQuery({
+  const { data: groupMessages = [], isLoading: loadingGroup, error: groupError } = useQuery({
     queryKey: ['groupMessages', eventId],
     queryFn: () => getGroupMessages(eventId!),
     enabled: !!eventId,
+    retry: false,
   })
 
   const messages = active?.type === 'dm' ? dmMessages : groupMessages
   const loadingMsgs = active?.type === 'dm' ? loadingDm : loadingGroup
+  const msgsError = active?.type === 'dm' ? dmError : groupError
+  const isForbidden = (msgsError as any)?.response?.status === 403
+  const isNotFound = (msgsError as any)?.response?.status === 404
 
   // ── Active DM conversation meta ───────────────────────────────
   const activeConv = active?.type === 'dm'
@@ -353,8 +358,28 @@ export default function MessagingPage() {
 
           {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {loadingMsgs && <p style={{ color: 'var(--z-muted)', fontSize: 13 }}>Loading…</p>}
-            {!loadingMsgs && messages.length === 0 && (
+            {msgsError && (
+              <div style={{ textAlign: 'center', marginTop: 50 }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>{isForbidden ? '🔒' : '⚠️'}</div>
+                <p style={{ color: 'var(--z-coral)', fontSize: 14, marginBottom: 4 }}>
+                  {isForbidden
+                    ? (active?.type === 'group'
+                        ? "You're no longer an accepted participant of this event."
+                        : "You don't have access to this conversation.")
+                    : isNotFound
+                    ? (active?.type === 'group' ? 'This event no longer exists.' : 'This conversation no longer exists.')
+                    : 'Something went wrong loading messages.'}
+                </p>
+                <button
+                  onClick={() => setActive(null)}
+                  style={{ marginTop: 8, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--z-border)', background: 'var(--z-surface2)', color: 'var(--z-muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Back to conversations
+                </button>
+              </div>
+            )}
+            {!msgsError && loadingMsgs && <p style={{ color: 'var(--z-muted)', fontSize: 13 }}>Loading…</p>}
+            {!msgsError && !loadingMsgs && messages.length === 0 && (
               <div style={{ textAlign: 'center', marginTop: 60 }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>
                   {active.type === 'group' ? '👥' : '💬'}
@@ -411,6 +436,7 @@ export default function MessagingPage() {
           </div>
 
           {/* Input */}
+          {!msgsError && (
           <div style={{ padding: '12px 20px', borderTop: '1px solid var(--z-border)', display: 'flex', gap: 8, background: 'var(--z-surface)', flexShrink: 0 }}>
             <input
               value={draft}
@@ -427,6 +453,7 @@ export default function MessagingPage() {
               <Send size={15} />
             </button>
           </div>
+          )}
         </div>
       )}
 

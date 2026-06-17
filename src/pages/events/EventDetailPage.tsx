@@ -127,9 +127,10 @@ function GroupChat({ eventId, eventTitle }: { eventId: string; eventTitle: strin
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Fetch group messages
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading, error: msgsError } = useQuery({
     queryKey: ['groupMessages', eventId],
     queryFn: () => getGroupMessages(eventId),
+    retry: false,
   })
 
   // Auto scroll
@@ -181,8 +182,16 @@ function GroupChat({ eventId, eventTitle }: { eventId: string; eventTitle: strin
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {isLoading && <p style={{ color: 'var(--z-muted)', fontSize: 13 }}>Loading…</p>}
-        {!isLoading && messages.length === 0 && (
+        {msgsError && (
+          <div style={{ textAlign: 'center', marginTop: 40 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+            <p style={{ color: 'var(--z-coral)', fontSize: 13 }}>
+              You no longer have access to this group chat.
+            </p>
+          </div>
+        )}
+        {!msgsError && isLoading && <p style={{ color: 'var(--z-muted)', fontSize: 13 }}>Loading…</p>}
+        {!msgsError && !isLoading && messages.length === 0 && (
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
             <p style={{ color: 'var(--z-muted)', fontSize: 13 }}>No messages yet. Start the conversation!</p>
@@ -217,6 +226,7 @@ function GroupChat({ eventId, eventTitle }: { eventId: string; eventTitle: strin
       </div>
 
       {/* Input */}
+      {!msgsError && (
       <div style={{ padding: '10px 14px', borderTop: '1px solid var(--z-border)', display: 'flex', gap: 8 }}>
         <input
           value={draft}
@@ -233,6 +243,7 @@ function GroupChat({ eventId, eventTitle }: { eventId: string; eventTitle: strin
           <Send size={15} />
         </button>
       </div>
+      )}
     </div>
   )
 }
